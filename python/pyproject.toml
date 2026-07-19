@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pushary-langgraph"
+version = "0.1.0"
+description = "Human-in-the-loop for LangGraph and LangChain: a blocking ask_human, plus a durable interrupt()/Command resume that reaches your user on their phone."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Pushary", email = "business@pushary.com" }]
+keywords = [
+    "langgraph",
+    "langchain",
+    "human-in-the-loop",
+    "ai-agents",
+    "approvals",
+    "interrupt",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pushary>=1.3.2",
+    "langgraph>=1.0,<2",
+]
+
+[project.urls]
+Homepage = "https://pushary.com"
+Documentation = "https://pushary.com/docs/agents/adapters"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pushary_langgraph"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/pushary_langgraph",
+    "README.md",
+    "LICENSE",
+    "tests",
+]

@@ -101,6 +101,17 @@ export async function POST(req: Request) {
 - `resolvePusharyCallback(raw, signature, secret)` — verify + parse a callback into `{ correlationId, answer, approved, ... }`.
 - `askExternalUser`, `createDurableDecision`, `describeAnswer`, `isAffirmative`, `deterministicKey`, `SIGNATURE_HEADER`.
 
+## Python
+
+The same two seams ship for Python (LangGraph's Python `interrupt()` plus a blocking
+`ask_human`). The package lives in [`python/`](python) and on PyPI:
+
+```bash
+pip install pushary-langgraph
+```
+
+See [python/README.md](python/README.md) for the Python API.
+
 ## Other frameworks
 
 The same two calls work in [CrewAI](https://pushary.com/human-in-the-loop-crewai),
