@@ -8,7 +8,7 @@ LangChain. Ask a real human to approve, and get the answer on their phone. Two s
   `interrupt()` and resumes on a signed webhook, so a long wait holds no compute and
   survives a restart.
 
-Requires the Pushary [Partner plan](https://pushary.com/agent-notifications-integration).
+Requires the Pushary [Partner plan](https://pushary.com/agent-notifications-integration?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-readme).
 
 ## Install
 

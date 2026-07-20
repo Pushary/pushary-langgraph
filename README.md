@@ -12,9 +12,9 @@ LangChain. Ask a real human to approve, and get the answer on their phone. Two s
   resumes on a signed webhook, so an hour-long wait holds no compute and survives a
   restart.
 
-Full walkthrough: [Human-in-the-loop for LangGraph](https://pushary.com/human-in-the-loop-langgraph).
+Full walkthrough: [Human-in-the-loop for LangGraph](https://pushary.com/human-in-the-loop-langgraph?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme).
 Reaching your own end-users on their phones is the Pushary
-[Partner plan](https://pushary.com/human-in-the-loop).
+[Partner plan](https://pushary.com/human-in-the-loop?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme).
 
 ## Install
 
@@ -114,11 +114,15 @@ See [python/README.md](python/README.md) for the Python API.
 
 ## Other frameworks
 
-The same two calls work in [CrewAI](https://pushary.com/human-in-the-loop-crewai),
-the [Vercel AI SDK](https://pushary.com/human-in-the-loop-vercel-ai-sdk),
-[Mastra](https://pushary.com/human-in-the-loop-mastra),
-the [OpenAI Agents SDK](https://pushary.com/human-in-the-loop-openai-agents-sdk), and
-[more](https://pushary.com/human-in-the-loop).
+The same two calls work in [CrewAI](https://pushary.com/human-in-the-loop-crewai?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme),
+the [Vercel AI SDK](https://pushary.com/human-in-the-loop-vercel-ai-sdk?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme),
+[Mastra](https://pushary.com/human-in-the-loop-mastra?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme),
+the [OpenAI Agents SDK](https://pushary.com/human-in-the-loop-openai-agents-sdk?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme), and
+[more](https://pushary.com/human-in-the-loop?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme).
+
+## Example
+
+A runnable example is in [`examples/`](examples).
 
 ## License
 
