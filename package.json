@@ -6,7 +6,7 @@
   "homepage": "https://pushary.com/human-in-the-loop-langgraph",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Pushary/pushary-langgraph.git"
+    "url": "git+https://github.com/Pushary/pushary-langgraph.git"
   },
   "bugs": {
     "url": "https://github.com/Pushary/pushary-langgraph/issues"
