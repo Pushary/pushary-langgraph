@@ -1,6 +1,6 @@
 {
   "name": "@pushary/langgraph",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Human-in-the-loop for LangGraph and LangChain: a blocking ask_human tool, plus a durable interrupt()/Command resume that reaches your user on their phone.",
   "author": "Pushary <business@pushary.com>",
   "homepage": "https://pushary.com/human-in-the-loop-langgraph",

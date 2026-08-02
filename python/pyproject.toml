@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pushary-langgraph"
-version = "0.1.0"
+version = "0.1.1"
 description = "Human-in-the-loop for LangGraph and LangChain: a blocking ask_human, plus a durable interrupt()/Command resume that reaches your user on their phone."
 readme = "README.md"
 requires-python = ">=3.10"
