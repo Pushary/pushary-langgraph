@@ -8,25 +8,29 @@ Two seams over the durable two-call contract (``enroll`` + ``decisions.ask``):
   native ``interrupt()`` and resumes on Pushary's signed webhook, so an hour-long
   wait holds no compute and survives a restart.
 
+Everything but the LangGraph binding is the shared kernel from ``pushary.adapters``,
+bound to this adapter's name.
+
 Zero framework import at module load: LangGraph is imported lazily, only on the
 durable path, so the blocking helpers work (and test) without it installed.
 """
 
 from __future__ import annotations
 
-import os
 from typing import Any, Dict, List, Optional
 
-from pushary import (
-    PusharyServer,
-    SIGNATURE_HEADER,
-    deterministic_key,
-    is_approved,
-    parse_decision_callback,
-    verify_webhook_signature,
+from pushary import SIGNATURE_HEADER, deterministic_key
+from pushary.adapters import (
+    AdapterKernel,
+    ApprovalAsk,
+    ApprovalDecision,
+    describe_answer,
+    is_affirmative,
+    render_approval_question,
+    resolve_pushary_callback,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "connect",
@@ -35,101 +39,26 @@ __all__ = [
     "describe_answer",
     "resolve_pushary_callback",
     "is_affirmative",
+    "render_approval_question",
     "deterministic_key",
+    "create_pushary_gate",
+    "require_pushary_external_id",
+    "ApprovalAsk",
+    "ApprovalDecision",
     "SIGNATURE_HEADER",
     "__version__",
 ]
 
+_kernel = AdapterKernel("the LangGraph helpers")
 
-def _client(api_key: Optional[str] = None, base_url: Optional[str] = None) -> PusharyServer:
-    key = api_key or os.environ.get("PUSHARY_API_KEY")
-    if not key:
-        raise ValueError("Pushary: set PUSHARY_API_KEY or pass api_key=... to the LangGraph helpers.")
-    return PusharyServer(api_key=key, base_url=base_url)
+connect = _kernel.connect
+ask_human = _kernel.ask_human
 
+#: Build a request-time approval gate bound to these helpers.
+create_pushary_gate = _kernel.create_gate
 
-def _idempotency_key(external_id: str, node: str, question: str) -> str:
-    return deterministic_key([external_id, node, question])
-
-
-def is_affirmative(answer: Optional[str]) -> bool:
-    """Fail-closed yes/no check for a confirm answer."""
-    return is_approved("answered", "confirm", answer)
-
-
-def connect(external_id: str, *, api_key: Optional[str] = None, base_url: Optional[str] = None) -> str:
-    """Connect one end-user's phone (keyless). Returns a single-use link to show them."""
-    return _client(api_key, base_url).enroll(external_id)["universalLink"]
-
-
-def ask_human(
-    question: str,
-    *,
-    external_id: str,
-    type: str = "confirm",
-    options: Optional[List[str]] = None,
-    node: str = "ask-human",
-    context: Optional[str] = None,
-    agent_name: Optional[str] = None,
-    timeout_seconds: Optional[float] = None,
-    api_key: Optional[str] = None,
-    base_url: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Blocking ask (Pattern A): create a decision and poll durably until answered.
-
-    Returns the decision dict (``decisionId``, ``status``, ``answered``, ``value``,
-    ``type``, fail-closed ``approved``). The idempotency key is derived from
-    external_id + node + question, so a node that re-runs on resume hits the same
-    decision instead of paging the human twice.
-    """
-    return _client(api_key, base_url).decisions.ask(
-        question,
-        type=type,
-        options=options,
-        external_id=external_id,
-        context=context,
-        agent_name=agent_name,
-        timeout_seconds=timeout_seconds,
-        idempotency_key=_idempotency_key(external_id, node, question),
-    )
-
-
-def describe_answer(type: str, result: Dict[str, Any]) -> str:
-    """Turn a decision outcome into an unambiguous instruction for the model."""
-    if not result.get("answered"):
-        return (
-            f"No answer (status: {result.get('status')}). "
-            "Treat this as NOT approved and do not proceed."
-        )
-    if type == "confirm":
-        return (
-            "The human approved. You may proceed."
-            if result.get("approved")
-            else "The human declined. Do not proceed."
-        )
-    return f"The human answered: {result.get('value') or ''}"
-
-
-def resolve_pushary_callback(
-    raw_body: Any, signature: Optional[str], secret: str
-) -> Optional[Dict[str, Any]]:
-    """Verify a callback signature and parse it, or return None.
-
-    Feed ``answer`` into ``graph.invoke(Command(resume=answer), config)``.
-    """
-    if not verify_webhook_signature(raw_body, signature, secret):
-        return None
-    cb = parse_decision_callback(raw_body)
-    if not cb:
-        return None
-    return {
-        "correlationId": cb.get("correlationId"),
-        "answer": cb.get("answer"),
-        "value": cb.get("value"),
-        "approved": is_affirmative(cb.get("answer")),
-        "context": cb.get("context"),
-        "answeredAt": cb.get("answeredAt"),
-    }
+#: The end-user to ask, or a clear error naming these helpers.
+require_pushary_external_id = _kernel.require_external_id
 
 
 def pushary_interrupt(
@@ -158,32 +87,33 @@ def pushary_interrupt(
     decision's idempotency key is derived from external_id + node + question, so the
     re-run lands on the same decision.
     """
-    idem = _idempotency_key(external_id, node, question)
-    px = _client(api_key, base_url)
 
     if not callback_url:
-        d = px.decisions.ask(
+        decision: Dict[str, Any] = ask_human(
             question,
+            external_id=external_id,
             type=type,
             options=options,
-            external_id=external_id,
+            node=node,
             context=context,
             agent_name=agent_name,
             timeout_seconds=timeout_seconds,
-            idempotency_key=idem,
+            api_key=api_key,
+            base_url=base_url,
         )
-        return d.get("value") if d.get("answered") else None
+        return decision.get("value") if decision.get("answered") else None
 
-    px.decisions.create(
+    _kernel.create_durable_decision(
         question,
+        external_id=external_id,
+        callback_url=callback_url,
         type=type,
         options=options,
-        external_id=external_id,
+        node=node,
         context=context,
         agent_name=agent_name,
-        callback_url=callback_url,
-        idempotency_key=idem,
-        wait=False,
+        api_key=api_key,
+        base_url=base_url,
     )
     # Lazy import: only the durable path needs LangGraph installed.
     from langgraph.types import interrupt

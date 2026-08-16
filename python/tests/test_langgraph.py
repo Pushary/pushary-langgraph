@@ -1,14 +1,16 @@
 """Tests for pushary_langgraph. Framework-free: LangGraph is never imported here,
 so the blocking helpers are exercised without it installed. HTTP is mocked by
-swapping the module's ``_client`` for a stub.
+swapping the kernel's client constructor for a stub.
 """
 
 import hashlib
 import hmac
 import json
+import os
 import unittest
 
 import pushary_langgraph as plg
+from pushary import adapters
 
 
 class FakeDecisions:
@@ -39,19 +41,26 @@ class FakeClient:
 
 
 class WithFakeClient:
-    """Patch plg._client to return a supplied FakeClient for the duration of a test."""
+    """Patch the kernel's client constructor to a FakeClient for one test."""
 
     def __init__(self, client):
         self.client = client
         self._orig = None
+        self._orig_key = None
 
     def __enter__(self):
-        self._orig = plg._client
-        plg._client = lambda *a, **k: self.client
+        self._orig = adapters.PusharyServer
+        adapters.PusharyServer = lambda **kwargs: self.client
+        self._orig_key = os.environ.get("PUSHARY_API_KEY")
+        os.environ["PUSHARY_API_KEY"] = "pk_test.sk_test"
         return self.client
 
     def __exit__(self, *exc):
-        plg._client = self._orig
+        adapters.PusharyServer = self._orig
+        if self._orig_key is None:
+            os.environ.pop("PUSHARY_API_KEY", None)
+        else:
+            os.environ["PUSHARY_API_KEY"] = self._orig_key
 
 
 SECRET = "whsec_test"

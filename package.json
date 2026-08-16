@@ -1,6 +1,6 @@
 {
   "name": "@pushary/langgraph",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Human-in-the-loop for LangGraph and LangChain: a blocking ask_human tool, plus a durable interrupt()/Command resume that reaches your user on their phone.",
   "author": "Pushary <business@pushary.com>",
   "homepage": "https://pushary.com/human-in-the-loop-langgraph",
@@ -41,7 +41,7 @@
     "prepublishOnly": "npm run build && npm run typecheck"
   },
   "dependencies": {
-    "@pushary/server": "^1.3.2"
+    "@pushary/server": "^1.4.0"
   },
   "peerDependencies": {
     "@langchain/core": ">=1.0.0",

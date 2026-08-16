@@ -6,5 +6,5 @@ export default defineConfig({
   dts: true,
   clean: true,
   sourcemap: true,
-  external: ['@langchain/core', '@langchain/langgraph', /^@langchain\//, 'zod', '@pushary/server'],
+  external: ['@langchain/core', '@langchain/langgraph', /^@langchain\//, 'zod', '@pushary/server', /^@pushary\/server\//],
 })
