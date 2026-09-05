@@ -53,7 +53,7 @@ const ask = (r: Partial<AskResult>): AskResult => ({
 })
 
 describe('askExternalUser', () => {
-  it('creates a decision then polls, and keys idempotency by externalId+node+question', async () => {
+  it('creates a decision then polls with a fresh operation key', async () => {
     const calls = installFetch([
       () => ({ decisionId: 'd1', status: 'pending', answered: false, type: 'confirm' }),
       () => ({ decisionId: 'd1', status: 'answered', answered: true, value: 'yes', type: 'confirm' }),
@@ -66,7 +66,7 @@ describe('askExternalUser', () => {
     expect(calls[0].url).toBe('https://pushary.com/api/v1/server/decisions')
     expect(calls[0].body?.externalId).toBe('user_1')
     expect(calls[0].body?.wait).toBe(false)
-    // stable idempotency key derived from externalId + node + question
+    // explicit operation key is preserved for retries
     expect(typeof calls[0].body?.idempotencyKey).toBe('string')
     expect(out.answered).toBe(true)
     expect(out.approved).toBe(true)
@@ -82,7 +82,7 @@ describe('createDurableDecision', () => {
       question: 'Approve?',
       externalId: 'user_1',
       node: 'approval',
-      callbackUrl: 'https://app.example.com/cb',
+      callbackUrl: 'https://app.example.com/cb', idempotencyKey: 'operation-1',
     })
     expect(calls[0].body?.wait).toBe(false)
     expect(calls[0].body?.callbackUrl).toBe('https://app.example.com/cb')
@@ -92,12 +92,12 @@ describe('createDurableDecision', () => {
 
   it('reuses the same idempotency key as the blocking path for the same input', async () => {
     const blocking = installFetch([() => ({ decisionId: 'd', status: 'answered', answered: true, value: 'yes' })])
-    await askExternalUser(CONFIG, { question: 'Q', externalId: 'u', node: 'n' })
+    await askExternalUser(CONFIG, { question: 'Q', externalId: 'u', node: 'n', idempotencyKey: 'operation-1' })
     const blockingKey = blocking[0].body?.idempotencyKey
     globalThis.fetch = realFetch
 
     const durable = installFetch([() => ({ decisionId: 'd', status: 'pending' })])
-    await createDurableDecision(CONFIG, { question: 'Q', externalId: 'u', node: 'n', callbackUrl: 'https://x/cb' })
+    await createDurableDecision(CONFIG, { question: 'Q', externalId: 'u', node: 'n', idempotencyKey: 'operation-1', callbackUrl: 'https://x/cb' })
     expect(durable[0].body?.idempotencyKey).toBe(blockingKey)
   })
 })

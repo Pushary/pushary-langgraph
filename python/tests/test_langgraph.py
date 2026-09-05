@@ -83,13 +83,13 @@ class AskHumanTests(unittest.TestCase):
     def test_ask_human_forwards_deterministic_idempotency_key(self):
         decisions = FakeDecisions(ask_result={"status": "answered", "answered": True, "value": "yes", "approved": True})
         with WithFakeClient(FakeClient(decisions=decisions)):
-            out = plg.ask_human("Approve?", external_id="user_1", node="approval")
+            out = plg.ask_human("Approve?", external_id="user_1", node="approval", idempotency_key="operation-1")
         self.assertTrue(out["approved"])
         call = decisions.ask_calls[0]
         self.assertEqual(call["external_id"], "user_1")
         self.assertTrue(call["idempotency_key"])
         # same input -> same key (re-run safe)
-        expected = plg.deterministic_key(["user_1", "approval", "Approve?"])
+        expected = "operation-1"
         self.assertEqual(call["idempotency_key"], expected)
 
 
@@ -114,7 +114,7 @@ class PusharyInterruptTests(unittest.TestCase):
         with WithFakeClient(FakeClient(decisions=decisions)):
             with self.assertRaises(ImportError):
                 plg.pushary_interrupt(
-                    "Approve?", external_id="user_1", node="n", callback_url="https://x/cb"
+                    "Approve?", external_id="user_1", node="n", callback_url="https://x/cb", idempotency_key="operation-1"
                 )
         create = decisions.create_calls[0]
         self.assertEqual(create["callback_url"], "https://x/cb")

@@ -85,14 +85,15 @@ const coerceAnswer = (resumed: unknown): string | null => {
  *   holds no idle compute.
  *
  * The whole node re-runs on resume, so keep any code before this call idempotent. The
- * decision's idempotency key is derived from externalId + node + question, so the
- * re-run hits the same decision instead of paging the human twice.
+ * durable path requires an explicit idempotencyKey tied to this operation, stable
+ * across retries and distinct for every independent action.
  *
  * ```ts
  * async function approvalNode(state) {
  *   const answer = await pusharyInterrupt(
  *     { apiKey: KEY },
  *     { externalId: state.userId, question: 'Approve this transfer?', node: 'approval',
+ *       idempotencyKey: state.approvalOperationId,
  *       callbackUrl: process.env.PUSHARY_CALLBACK_URL },
  *   )
  *   return { approved: answer === 'yes' }

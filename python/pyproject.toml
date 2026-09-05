@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pushary-langgraph"
-version = "0.2.0"
+version = "0.3.0"
 description = "Human-in-the-loop for LangGraph and LangChain: a blocking ask_human, plus a durable interrupt()/Command resume that reaches your user on their phone."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -32,7 +32,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "pushary>=1.4.0",
+    "pushary>=2.0.0,<3",
     "langgraph>=1.0,<2",
 ]
 

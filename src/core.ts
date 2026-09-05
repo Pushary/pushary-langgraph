@@ -44,16 +44,15 @@ const kernel = createAdapterKernel('the LangGraph helpers')
 
 /**
  * Blocking ask (Pattern A): create a decision and poll durably until the human
- * answers or the deadline passes. The idempotency key is derived from
- * externalId + node + question, so a LangGraph node that re-runs on resume hits the
- * same decision instead of paging twice.
+ * answers or the deadline passes. Each call creates a fresh decision unless the
+ * caller supplies an idempotencyKey tied to its operation.
  */
 export const askExternalUser = kernel.askExternalUser
 
 /**
  * Durable create (Pattern B): open a decision with a callbackUrl and return at once.
- * Used by `pusharyInterrupt` right before it pauses the graph. Same deterministic
- * idempotency key as the blocking path, so the node's re-run on resume is safe.
+ * Used by `pusharyInterrupt` right before it pauses the graph. Requires an explicit
+ * idempotencyKey tied to the run and step so a resume reuses only that decision.
  */
 export const createDurableDecision = kernel.createDurableDecision
 

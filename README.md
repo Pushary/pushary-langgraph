@@ -53,7 +53,7 @@ Wrap LangGraph's native `interrupt()`. Pass a `callbackUrl` to park the graph in
 of blocking.
 
 ```ts
-import { pusharyInterrupt } from '@pushary/langgraph'
+import { pusharyInterrupt, deterministicKey } from '@pushary/langgraph'
 import { StateGraph, MemorySaver, Command } from '@langchain/langgraph'
 
 async function approvalNode(state) {
@@ -63,6 +63,7 @@ async function approvalNode(state) {
       externalId: state.userId,
       question: 'Approve this transfer?',
       node: 'approval',
+      idempotencyKey: deterministicKey([state.runId, 'approval', state.userId]),
       callbackUrl: process.env.PUSHARY_CALLBACK_URL, // omit to block instead of park
     },
   )
@@ -73,8 +74,7 @@ const graph = builder.compile({ checkpointer: new MemorySaver() }) // a checkpoi
 ```
 
 The whole node re-runs on resume, so keep any code before `pusharyInterrupt`
-idempotent. The decision's idempotency key is derived from `externalId + node +
-question`, so the re-run lands on the same decision instead of paging the human twice.
+idempotent. Durable calls require an explicit `idempotencyKey`: use a run ID unique to this operation and stable across retries, plus the step and user. A new run must receive a new key. Blocking calls without a key create independent decisions.
 
 ### Resume from the webhook
 

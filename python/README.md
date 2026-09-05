@@ -36,20 +36,19 @@ def approval_node(state):
     return {"approved": d["approved"]}
 ```
 
-`ask_human` blocks, polls durably, and fails closed. The idempotency key is derived
-from `external_id + node + question`, so a node that re-runs on resume hits the same
-decision instead of paging the human twice.
+`ask_human` creates a fresh decision per call. Pass an explicit `idempotency_key` tied to a unique run and step to replay one operation. Durable interrupts require that key; use a different run ID for each new operation.
 
 ## Durable interrupt
 
 ```python
-from pushary_langgraph import pushary_interrupt
+from pushary_langgraph import pushary_interrupt, deterministic_key
 
 def approval_node(state):
     answer = pushary_interrupt(
         "Approve this transfer?",
         external_id=state["user_id"],
         node="approval",
+        idempotency_key=deterministic_key([state["run_id"], "approval", state["user_id"]]),
         callback_url=os.environ["PUSHARY_CALLBACK_URL"],  # omit to block instead of park
     )
     return {"approved": answer == "yes"}

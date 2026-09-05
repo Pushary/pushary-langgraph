@@ -30,7 +30,7 @@ from pushary.adapters import (
     resolve_pushary_callback,
 )
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "connect",
@@ -66,6 +66,7 @@ def pushary_interrupt(
     *,
     external_id: str,
     node: str = "hitl",
+    idempotency_key: Optional[str] = None,
     type: str = "confirm",
     options: Optional[List[str]] = None,
     callback_url: Optional[str] = None,
@@ -84,14 +85,15 @@ def pushary_interrupt(
       ``Command(resume=answer)`` from the signed webhook. Holds no idle compute.
 
     The whole node re-runs on resume, so keep code before this call idempotent. The
-    decision's idempotency key is derived from external_id + node + question, so the
-    re-run lands on the same decision.
+    durable path requires an idempotency_key tied to the run and step, so the
+    re-run lands on the same decision without reusing another operation's answer.
     """
 
     if not callback_url:
         decision: Dict[str, Any] = ask_human(
             question,
             external_id=external_id,
+            idempotency_key=idempotency_key,
             type=type,
             options=options,
             node=node,
@@ -107,6 +109,7 @@ def pushary_interrupt(
         question,
         external_id=external_id,
         callback_url=callback_url,
+        idempotency_key=idempotency_key,
         type=type,
         options=options,
         node=node,
