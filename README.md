@@ -1,5 +1,36 @@
 # @pushary/langgraph
 
+## Try it before signing up
+
+[Open the no-signup browser demo](https://pushary.com/try?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=demo).
+It demonstrates a human approval with an open phone page and temporary state;
+it does **not** demonstrate push delivery or durable production storage.
+
+For a local example using the real LangGraph conditional routing:
+
+```bash
+git clone https://github.com/Pushary/pushary-langgraph.git
+cd pushary-langgraph
+npm install
+npm run build
+node examples/refund.mjs
+```
+
+Use Node.js 22. No account, card, API key, or model provider is needed for this simulation.
+It checks all three outcomes:
+
+```text
+yes: executed (simulated refund)
+no: blocked (simulated refund)
+unanswered: blocked (simulated refund)
+```
+
+[Read the example and try a real phone approval](examples/README.md).
+The integration code is MIT-licensed; real phone delivery uses the hosted Pushary service and requires Partner access.
+
+Found it useful? [Star this repository](https://github.com/Pushary/pushary-langgraph) or
+[help improve an example](CONTRIBUTING.md).
+
 [![CI](https://github.com/Pushary/pushary-langgraph/actions/workflows/ci.yml/badge.svg)](https://github.com/Pushary/pushary-langgraph/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@pushary/langgraph)](https://www.npmjs.com/package/@pushary/langgraph)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
