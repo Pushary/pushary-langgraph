@@ -17,7 +17,7 @@ durable path, so the blocking helpers work (and test) without it installed.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pushary import SIGNATURE_HEADER, deterministic_key
 from pushary.adapters import (
@@ -30,9 +30,12 @@ from pushary.adapters import (
     resolve_pushary_callback,
 )
 
-__version__ = "0.3.0"
+from .review import CreatedDecision, ReviewRequest, ReviewResume, parse_answer, parse_resume
+
+__version__ = "0.4.0"
 
 __all__ = [
+    "ReviewResume",
     "connect",
     "ask_human",
     "pushary_interrupt",
@@ -67,7 +70,7 @@ def pushary_interrupt(
     external_id: str,
     node: str = "hitl",
     idempotency_key: Optional[str] = None,
-    type: str = "confirm",
+    type: Literal["confirm", "select", "input"] = "confirm",
     options: Optional[List[str]] = None,
     callback_url: Optional[str] = None,
     context: Optional[str] = None,
@@ -75,50 +78,42 @@ def pushary_interrupt(
     timeout_seconds: Optional[float] = None,
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
+    tool_target: Optional[str] = None,
+    actor: Optional[str] = None,
+    environment: Optional[str] = None,
+    parameters: Optional[Dict[str, Any]] = None,
+    presentation: Optional[Dict[str, Any]] = None,
+    placeholder: Optional[str] = None,
+    expires_in_seconds: Optional[int] = None,
+    require_reachable: Optional[bool] = None,
 ) -> Optional[str]:
-    """Ask a human from inside a LangGraph node.
-
-    - ``callback_url`` omitted (Pattern A): blocks, polls durably, returns the answer
-      (or None if fail-closed). Zero extra infra, holds the run open for the wait.
-    - ``callback_url`` set (Pattern B): opens the decision, then calls LangGraph's
-      ``interrupt()`` to park the graph in your checkpointer. Resume with
-      ``Command(resume=answer)`` from the signed webhook. Holds no idle compute.
-
-    The whole node re-runs on resume, so keep code before this call idempotent. The
-    durable path requires an idempotency_key tied to the run and step, so the
-    re-run lands on the same decision without reusing another operation's answer.
-    """
-
-    if not callback_url:
-        decision: Dict[str, Any] = ask_human(
-            question,
-            external_id=external_id,
-            idempotency_key=idempotency_key,
-            type=type,
-            options=options,
-            node=node,
-            context=context,
-            agent_name=agent_name,
-            timeout_seconds=timeout_seconds,
-            api_key=api_key,
-            base_url=base_url,
-        )
-        return decision.get("value") if decision.get("answered") else None
-
-    _kernel.create_durable_decision(
-        question,
-        external_id=external_id,
-        callback_url=callback_url,
-        idempotency_key=idempotency_key,
-        type=type,
-        options=options,
-        node=node,
-        context=context,
-        agent_name=agent_name,
-        api_key=api_key,
-        base_url=base_url,
+    review = ReviewRequest(
+        question=question, external_id=external_id, node=node, idempotency_key=idempotency_key,
+        type=type, options=options, callback_url=callback_url, context=context, agent_name=agent_name,
+        tool_target=tool_target, actor=actor, environment=environment, parameters=parameters,
+        presentation=presentation, placeholder=placeholder, expires_in_seconds=expires_in_seconds,
+        require_reachable=require_reachable,
     )
-    # Lazy import: only the durable path needs LangGraph installed.
+    values = review.bound_input()
+    values.pop("question")
+    if not callback_url:
+        decision = ask_human(question, **values, timeout_seconds=timeout_seconds, api_key=api_key, base_url=base_url)
+        return parse_answer(decision.get("value"), review) if decision.get("status") == "answered" and decision.get("answered") else None
+
+    created = CreatedDecision.model_validate(_kernel.create_durable_decision(question, **values, api_key=api_key, base_url=base_url))
+    if created.status in ("expired", "cancelled"):
+        return None
     from langgraph.types import interrupt
 
-    return interrupt({"pushary": "decision", "question": question, "external_id": external_id})
+    correlation_id = created.correlation_id
+    resumed = interrupt({
+        "pushary": "decision",
+        "decisionId": created.decision_id,
+        "correlationId": correlation_id,
+        "operationKey": values["idempotency_key"],
+        "question": question,
+        "type": review.type,
+        "options": review.options,
+        "external_id": external_id,
+    })
+    return parse_resume(resumed, correlation_id, review)

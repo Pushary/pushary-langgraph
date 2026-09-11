@@ -8,6 +8,7 @@ import hmac
 import json
 import os
 import unittest
+from unittest.mock import patch
 
 import pushary_langgraph as plg
 from pushary import adapters
@@ -95,7 +96,7 @@ class AskHumanTests(unittest.TestCase):
 
 class PusharyInterruptTests(unittest.TestCase):
     def test_blocking_pattern_returns_value_when_answered(self):
-        decisions = FakeDecisions(ask_result={"answered": True, "value": "yes"})
+        decisions = FakeDecisions(ask_result={"status": "answered", "answered": True, "value": "yes"})
         with WithFakeClient(FakeClient(decisions=decisions)):
             answer = plg.pushary_interrupt("Approve?", external_id="user_1", node="n")
         self.assertEqual(answer, "yes")
@@ -107,15 +108,12 @@ class PusharyInterruptTests(unittest.TestCase):
         self.assertIsNone(answer)
 
     def test_durable_pattern_opens_decision_with_callback(self):
-        # callback_url set -> Pattern B calls create() then imports langgraph.interrupt.
-        # langgraph is not installed in this test env, so we assert the create call happened
-        # and that the lazy import is what raises (not our code path).
         decisions = FakeDecisions(create_result={"decisionId": "d1", "status": "pending"})
-        with WithFakeClient(FakeClient(decisions=decisions)):
-            with self.assertRaises(ImportError):
-                plg.pushary_interrupt(
-                    "Approve?", external_id="user_1", node="n", callback_url="https://x/cb", idempotency_key="operation-1"
-                )
+        with WithFakeClient(FakeClient(decisions=decisions)), patch("langgraph.types.interrupt", return_value={"correlationId": "d1", "answer": "yes"}) as interrupted:
+            self.assertEqual(plg.pushary_interrupt(
+                "Approve?", external_id="user_1", node="n", callback_url="https://x/cb", idempotency_key="operation-1"
+            ), "yes")
+        self.assertEqual(interrupted.call_args.args[0]["correlationId"], "d1")
         create = decisions.create_calls[0]
         self.assertEqual(create["callback_url"], "https://x/cb")
         self.assertEqual(create["wait"], False)

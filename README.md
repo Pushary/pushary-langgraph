@@ -35,125 +35,159 @@ Found it useful? [Star this repository](https://github.com/Pushary/pushary-langg
 [![npm](https://img.shields.io/npm/v/@pushary/langgraph)](https://www.npmjs.com/package/@pushary/langgraph)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Human-in-the-loop for [LangGraph](https://langchain-ai.github.io/langgraphjs/) and
-LangChain. Ask a real human to approve, and get the answer on their phone. Two seams:
+Human-in-the-loop for LangGraph and LangChain using the native Pushary app. Reuse
+**confirm** for permission, **select** for a choice and **input** for missing details.
+Confirm notifications have lock-screen actions; choices and free text open the app.
+The older browser/PWA decision surface remains a compatibility path.
 
-- **A blocking `ask_human` tool** for a straightforward approval inside a request.
-- **A durable `interrupt()` wrapper** that parks the graph in your checkpointer and
-  resumes on a signed webhook, so an hour-long wait holds no compute and survives a
-  restart.
-
-Full walkthrough: [Human-in-the-loop for LangGraph](https://pushary.com/human-in-the-loop-langgraph?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme).
-Reaching your own end-users on their phones is the Pushary
-[Partner plan](https://pushary.com/human-in-the-loop?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme).
-
-## Install
+## Install and connect
 
 ```bash
-npm i @pushary/langgraph @langchain/langgraph @langchain/core
+npm i @pushary/langgraph @langchain/langgraph @langchain/core zod
 ```
-
-Set `PUSHARY_API_KEY` (get it in your [dashboard](https://pushary.com/dashboard/settings)).
-
-## Connect a phone once
 
 ```ts
 import { connect } from '@pushary/langgraph'
 
-const { universalLink } = await connect({ apiKey: process.env.PUSHARY_API_KEY! }, user.id)
-// show universalLink to the user; one tap connects their phone
+const { universalLink } = await connect({ apiKey: process.env.PUSHARY_API_KEY }, authenticatedCustomer.id)
 ```
 
-## Blocking tool
+Deliver this link to that authenticated customer. Native enrollment requires the app
+and notification permission; after installation reopen the invitation. The customer
+needs no Pushary account, key or paid plan; the developer needs Partner access.
+`externalId` must come from trusted application ownership, never model-generated input.
+
+## Optional ask tool vs enforced graph review
+
+`createAskHumanTool(config, { externalId })` offers a model a blocking question tool.
+It does not enforce approval before other tools. Enforce review through graph topology:
+put the interrupt before the protected action and route to that action only when the
+**confirm** result equals `'yes'`. A select/input answer is data, even when its text
+happens to be `'yes'`; it is not authorization to run another tool.
+
+The blocking path has a bounded local wait. `pusharyInterrupt` returns `null` when
+unanswered, expired or cancelled; timeout does not cancel the remote decision. Use
+the interrupt path for a customer who might answer after the worker exits.
+
+## Durable native interrupt
 
 ```ts
-import { createAskHumanTool } from '@pushary/langgraph'
-import { createReactAgent } from '@langchain/langgraph/prebuilt'
+import { pusharyInterrupt } from '@pushary/langgraph'
 
-const askHuman = createAskHumanTool({ apiKey: process.env.PUSHARY_API_KEY! }, { externalId: user.id })
-const agent = createReactAgent({ llm, tools: [askHuman] })
-```
-
-The tool blocks until the person answers and returns a fail-closed instruction to the
-model ("The human declined. Do not proceed."). `externalId` is bound in code, never
-taken from model input, so a prompt-injected model cannot ask the wrong person.
-
-## Durable interrupt
-
-Wrap LangGraph's native `interrupt()`. Pass a `callbackUrl` to park the graph instead
-of blocking.
-
-```ts
-import { pusharyInterrupt, deterministicKey } from '@pushary/langgraph'
-import { StateGraph, MemorySaver, Command } from '@langchain/langgraph'
-
-async function approvalNode(state) {
+async function reviewOrder(state: OrderState) {
   const answer = await pusharyInterrupt(
-    { apiKey: process.env.PUSHARY_API_KEY! },
+    { apiKey: process.env.PUSHARY_API_KEY },
     {
-      externalId: state.userId,
-      question: 'Approve this transfer?',
-      node: 'approval',
-      idempotencyKey: deterministicKey([state.runId, 'approval', state.userId]),
-      callbackUrl: process.env.PUSHARY_CALLBACK_URL, // omit to block instead of park
+      externalId: state.customerId,
+      idempotencyKey: state.reviewOperationId,
+      node: 'submit-order',
+      question: `Submit order ${state.orderId}, revision ${state.revision}?`,
+      type: 'confirm',
+      toolTarget: state.orderId,
+      parameters: { revision: state.revision, amount: state.amountMinor },
+      presentation: {
+        label: 'Submit sales order',
+        effect: 'Creates this reviewed revision in your ERP.',
+        changes: [{ parameter: 'amount', label: 'Total', format: { kind: 'currency', currency: 'EUR' } }],
+      },
+      callbackUrl: process.env.PUSHARY_CALLBACK_URL,
     },
   )
   return { approved: answer === 'yes' }
 }
-
-const graph = builder.compile({ checkpointer: new MemorySaver() }) // a checkpointer is required
 ```
 
-The whole node re-runs on resume, so keep any code before `pusharyInterrupt`
-idempotent. Durable calls require an explicit `idempotencyKey`: use a run ID unique to this operation and stable across retries, plus the step and user. A new run must receive a new key. Blocking calls without a key create independent decisions.
+`OrderState` above is your validated business state. Store an immutable revision and
+check it again at the protected write. Define graph edges so rejection/null cannot
+reach that write. For a choice use `type:'select', options:['A','B']`; for text use
+`type:'input'`. Presentation and subject fields use the existing server SDK contract.
 
-### Resume from the webhook
+Compile with a persistent LangGraph checkpointer and supply a stable, customer-scoped
+`configurable.thread_id`. `MemorySaver` is not restart durability. The whole node
+executes again on resume, so code before the interrupt must be idempotent. The adapter
+fingerprints the supplied operation key, recipient and request contents; same request
+retries reuse a decision, while changed recipients/arguments/presentation get a new
+identity. Keep the request stable across replay and use a fresh operation key for a
+new action. Fingerprinting does not verify ownership or make an ERP write idempotent.
+
+The interrupt payload contains `decisionId`, `correlationId`, `operationKey`, `type`,
+`question`, `options` and `externalId`. The native LangGraph interrupt also has its
+own `id`; keep both IDs. The SDK's created decision is not thrown away.
+
+## Callback integration contract
+
+The adapter does not install an HTTP route or callback inbox. Your application must:
+
+1. Verify the raw request using `resolvePusharyCallback(raw, signature, webhookSecret)`
+   and persist the verified callback before acknowledging it. Select the secret and
+   tenant from trusted endpoint configuration, not callback text.
+2. Persist the association between tenant/customer, operation, thread ID, interrupt
+   ID and Pushary correlation ID after the checkpoint is ready. An early callback
+   stays queued until this association exists; do not discard it as an unknown ID.
+3. Serialize processing per thread using your existing job/transaction mechanism,
+   reload its current checkpoint, and match the exact pending interrupt. If a retry
+   finds that interrupt already completed, acknowledge it without resuming another.
+4. Resume by native interrupt ID with the **correlated object**:
 
 ```ts
-import { resolvePusharyCallback } from '@pushary/langgraph'
 import { Command } from '@langchain/langgraph'
 
-// POST /pushary/callback
-export async function POST(req: Request) {
-  const raw = await req.text()
-  const cb = resolvePusharyCallback(raw, req.headers.get('x-pushary-signature'), process.env.PUSHARY_WEBHOOK_SECRET!)
-  if (!cb) return new Response('bad signature', { status: 401 })
-  const threadId = await lookupThread(cb.correlationId) // your own correlationId -> thread_id map
-  await graph.invoke(new Command({ resume: cb.answer }), { configurable: { thread_id: threadId } })
-  return new Response('ok')
-}
+await graph.invoke(new Command({
+  resume: {
+    [pendingInterrupt.id]: {
+      correlationId: verifiedCallback.correlationId,
+      answer: verifiedCallback.answer,
+    },
+  },
+}), { configurable: { thread_id: trustedThreadId } })
 ```
 
-## API
+This is a worker fragment after the checks above, not a complete webhook handler.
+Resume data is schema-validated: wrong correlation, arbitrary objects, invalid select
+options and non-yes/no confirm answers throw instead of permitting execution. A trusted
+expiry/cancellation reconciler may resume `{ correlationId, status:'expired', answer:null }`
+(or `'cancelled'`); never fabricate an approval to release a waiting graph. Don't use
+`verifiedCallback.approved` to authorize a select/input operation.
 
-- `connect(config, externalId)` — enroll an end-user's phone.
-- `createAskHumanTool(config, { externalId })` — a LangChain `tool()` that blocks on a human.
-- `pusharyInterrupt(config, input)` — ask from a node: blocking, or durable when `callbackUrl` is set.
-- `resolvePusharyCallback(raw, signature, secret)` — verify + parse a callback into `{ correlationId, answer, approved, ... }`.
-- `askExternalUser`, `createDurableDecision`, `describeAnswer`, `isAffirmative`, `deterministicKey`, `SIGNATURE_HEADER`.
+Persist processing outcomes, reconcile remote decision status if a webhook is missed,
+and handle a crash between graph resume and callback acknowledgement. Notifications
+and callbacks may repeat. Review/checkpoint persistence does not guarantee exactly-once
+external effects; use the ERP's operation key and reconcile uncertain writes.
+
+## Upgrade from 0.3
+
+0.4 requires server SDK 2.1 and rejects bare string/boolean durable resumes. Send the
+correlation envelope above. Existing suspended 0.3 runs must finish under their old
+adapter version; do not change adapter code/fingerprints underneath parked checkpoints.
+The function still returns `string | null` and validates that string for its question
+type. Keep `answer === 'yes'` only on a confirm permission branch.
+
+## Run the persistence checks
+
+```bash
+npm install
+npm test
+npm run typecheck
+npm run build
+```
+
+[The restart test](src/interrupt.test.ts) uses real LangGraph and its official SQLite
+checkpointer, closes/reopens the database and rebuilds the graph before resuming.
+HTTP is simulated; no model, phone notification, callback server or ERP is contacted.
+It also checks action identity and rejected resume payloads. Tested here with
+LangGraph JS 1.4.10 and SQLite checkpointer 1.0.4; the wider peer range is not a claim
+that every version was exercised. SQLite is a development dependency, not a new
+Pushary runtime. The application chooses its production checkpointer.
+
+[LangGraph interrupt semantics](https://docs.langchain.com/oss/javascript/langgraph/interrupts)
+cover node replay, persistence and interrupt-ID addressing.
 
 ## Python
 
-The same two seams ship for Python (LangGraph's Python `interrupt()` plus a blocking
-`ask_human`). The package lives in [`python/`](python) and on PyPI:
-
-```bash
-pip install pushary-langgraph
-```
-
-See [python/README.md](python/README.md) for the Python API.
-
-## Other frameworks
-
-The same two calls work in [CrewAI](https://pushary.com/human-in-the-loop-crewai?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme),
-the [Vercel AI SDK](https://pushary.com/human-in-the-loop-vercel-ai-sdk?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme),
-[Mastra](https://pushary.com/human-in-the-loop-mastra?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme),
-the [OpenAI Agents SDK](https://pushary.com/human-in-the-loop-openai-agents-sdk?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme), and
-[more](https://pushary.com/human-in-the-loop?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme).
-
-## Example
-
-A runnable example is in [`examples/`](examples).
+The matching package is `pushary-langgraph`; see [python/README.md](python/README.md)
+in the published repository. Both languages use native interrupts and the existing
+Pushary decision service. Neither the optional ask tool nor an LLM instruction is an
+enforced action gate.
 
 ## License
 

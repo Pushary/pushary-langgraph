@@ -1,6 +1,6 @@
 {
   "name": "@pushary/langgraph",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Human-in-the-loop for LangGraph and LangChain: a blocking ask_human tool, plus a durable interrupt()/Command resume that reaches your user on their phone.",
   "author": "Pushary <business@pushary.com>",
   "homepage": "https://pushary.com/human-in-the-loop-langgraph",
@@ -30,7 +30,7 @@
   ],
   "sideEffects": false,
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "scripts": {
     "build": "tsup",
@@ -41,7 +41,7 @@
     "prepublishOnly": "npm run build && npm run typecheck"
   },
   "dependencies": {
-    "@pushary/server": "^2.0.0"
+    "@pushary/server": "^2.1.0"
   },
   "peerDependencies": {
     "@langchain/core": ">=1.0.0",
@@ -51,6 +51,8 @@
   "devDependencies": {
     "@langchain/core": "^1.2.8",
     "@langchain/langgraph": "^1.4.10",
+    "@langchain/langgraph-checkpoint": "^1.1.4",
+    "@langchain/langgraph-checkpoint-sqlite": "^1.0.4",
     "@types/node": "^20.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0",

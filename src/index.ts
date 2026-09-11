@@ -1,6 +1,7 @@
 import { tool } from '@langchain/core/tools'
 import { interrupt } from '@langchain/langgraph'
-import { z } from 'zod'
+import { questionSchema, prepareReview, parseReviewAnswer, parseReviewResume, createdDecisionSchema } from './review'
+export type { PusharyInterruptResume } from './review'
 import {
   askExternalUser,
   createDurableDecision,
@@ -22,17 +23,8 @@ export interface AskHumanToolOptions {
   readonly description?: string
 }
 
-const ASK_INPUT_SCHEMA = z.object({
-  question: z.string().describe('The exact question to put to the human.'),
-  type: z
-    .enum(['confirm', 'select', 'input'])
-    .default('confirm')
-    .describe('confirm = yes/no, select = pick an option, input = free text.'),
-  options: z.array(z.string()).optional().describe('The choices, for a select question.'),
-})
-
 const DEFAULT_DESCRIPTION =
-  'Ask a real human to approve, choose, or answer. Delivered to their phone and answered from the lock screen. Blocks until they reply. Use before any risky or irreversible action or when you need a human decision.'
+  'Ask a customer to approve, choose, or answer in the native Pushary app. Confirm requests support lock-screen actions; select and input open the app. This optional tool does not enforce approval of other tools.'
 
 /**
  * A LangChain tool that asks a real human and blocks until they answer, fail-closed.
@@ -61,62 +53,30 @@ export const createAskHumanTool = (config: PusharyLangGraphConfig, opts: AskHuma
     {
       name: opts.name ?? 'ask_human',
       description: opts.description ?? DEFAULT_DESCRIPTION,
-      schema: ASK_INPUT_SCHEMA,
+      schema: questionSchema,
     },
   )
 
-const coerceAnswer = (resumed: unknown): string | null => {
-  if (typeof resumed === 'string') return resumed
-  if (resumed && typeof resumed === 'object' && typeof (resumed as { answer?: unknown }).answer === 'string') {
-    return (resumed as { answer: string }).answer
-  }
-  return resumed == null ? null : String(resumed)
-}
-
-/**
- * Ask a human from inside a LangGraph node, choosing the seam by whether you pass a
- * `callbackUrl`:
- *
- * - **No callbackUrl (Pattern A):** blocks and polls durably, returns the answer (or
- *   null if fail-closed). Zero extra infra, but holds the run open for the wait.
- * - **With callbackUrl (Pattern B):** opens the decision, then calls LangGraph's
- *   `interrupt()` to park the graph in your checkpointer. Pushary's signed webhook
- *   resumes the graph with `Command({ resume: answer })`. Survives worker death and
- *   holds no idle compute.
- *
- * The whole node re-runs on resume, so keep any code before this call idempotent. The
- * durable path requires an explicit idempotencyKey tied to this operation, stable
- * across retries and distinct for every independent action.
- *
- * ```ts
- * async function approvalNode(state) {
- *   const answer = await pusharyInterrupt(
- *     { apiKey: KEY },
- *     { externalId: state.userId, question: 'Approve this transfer?', node: 'approval',
- *       idempotencyKey: state.approvalOperationId,
- *       callbackUrl: process.env.PUSHARY_CALLBACK_URL },
- *   )
- *   return { approved: answer === 'yes' }
- * }
- * ```
- */
 export const pusharyInterrupt = async (
   config: PusharyLangGraphConfig,
   input: PusharyAskInput,
 ): Promise<string | null> => {
-  if (!input.callbackUrl) {
-    const result = await askExternalUser(config, input)
-    return result.answered ? result.value : null
+  const reviewed = prepareReview(input)
+  if (!reviewed.callbackUrl) {
+    const result = await askExternalUser(config, reviewed)
+    return result.status === 'answered' && result.answered ? parseReviewAnswer(result.value, reviewed) : null
   }
-  // Open the durable decision first, then park the graph. On the first pass
-  // interrupt() throws a GraphInterrupt that must propagate to the runtime; on resume
-  // the node re-runs, createDurableDecision replays onto the same decision (stable
-  // idempotency key), and interrupt() returns the resume value.
-  await createDurableDecision(config, input)
+  const created = createdDecisionSchema.parse(await createDurableDecision(config, reviewed))
+  if (created.status === 'expired' || created.status === 'cancelled') return null
   const resumed = interrupt({
     pushary: 'decision',
-    question: input.question,
-    externalId: input.externalId,
+    decisionId: created.decisionId,
+    correlationId: created.correlationId,
+    operationKey: reviewed.idempotencyKey,
+    question: reviewed.question,
+    type: reviewed.type,
+    options: reviewed.options,
+    externalId: reviewed.externalId,
   })
-  return coerceAnswer(resumed)
+  return parseReviewResume(resumed, created.correlationId, reviewed)
 }
