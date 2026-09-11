@@ -1,5 +1,9 @@
 # @pushary/langgraph
 
+Your graph pauses; your customer answers on their phone. Resume the saved review with yes/no, a choice or text.
+
+[Integration guide](https://pushary.com/human-in-the-loop-langgraph?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=guide) · [Connect your customer’s phone](https://pushary.com/sign-up?from=agent&plan=partner&utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=partner-start) · [Report a problem](https://github.com/Pushary/pushary-langgraph/issues)
+
 ## Try it before signing up
 
 [Open the no-signup browser demo](https://pushary.com/try?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=demo).
@@ -28,8 +32,7 @@ unanswered: blocked (simulated refund)
 [Read the example and try a real phone approval](examples/README.md).
 The integration code is MIT-licensed; real phone delivery uses the hosted Pushary service and requires Partner access.
 
-Found it useful? [Star this repository](https://github.com/Pushary/pushary-langgraph) or
-[help improve an example](CONTRIBUTING.md).
+[Get help or contribute an example](CONTRIBUTING.md).
 
 [![CI](https://github.com/Pushary/pushary-langgraph/actions/workflows/ci.yml/badge.svg)](https://github.com/Pushary/pushary-langgraph/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@pushary/langgraph)](https://www.npmjs.com/package/@pushary/langgraph)

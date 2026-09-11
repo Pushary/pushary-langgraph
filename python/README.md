@@ -1,5 +1,7 @@
 # pushary-langgraph
 
+[Connect your customer’s phone](https://pushary.com/sign-up?from=agent&plan=partner&utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-partner-start) · [Integration guide](https://pushary.com/docs/agents/adapters).
+
 Native Pushary customer reviews for LangGraph: **confirm** for permission, **select**
 for choices, **input** for missing details. Confirm supports lock-screen actions;
 select/input open the app. The legacy web/PWA surface remains compatible.
