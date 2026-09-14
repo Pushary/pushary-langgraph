@@ -4,6 +4,11 @@ Your graph pauses; your customer answers on their phone. Resume the saved review
 
 [Integration guide](https://pushary.com/human-in-the-loop-langgraph?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=guide) · [Connect your customer’s phone](https://pushary.com/sign-up?from=agent&plan=partner&utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=partner-start) · [Report a problem](https://github.com/Pushary/pushary-langgraph/issues)
 
+Listed in the [LangChain JavaScript tools directory](https://docs.langchain.com/oss/javascript/integrations/tools/index) and [provider directory](https://docs.langchain.com/oss/javascript/integrations/providers/all_providers).
+
+**Tutorial: [Pause an order workflow, get customer approval on a phone, then resume](examples/README.md).**
+Use the runnable refund example to gate a $40 refund for order DEMO-123.
+
 ## Try it before signing up
 
 [Open the no-signup browser demo](https://pushary.com/try?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=demo).
