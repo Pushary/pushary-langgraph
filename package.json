@@ -1,6 +1,6 @@
 {
   "name": "@pushary/langgraph",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Phone approvals for LangGraph and LangChain agents. Your agent asks, your user taps Approve or Deny.",
   "author": "Pushary <business@pushary.com>",
   "homepage": "https://pushary.com/human-in-the-loop-langgraph",

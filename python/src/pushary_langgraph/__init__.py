@@ -32,7 +32,7 @@ from pushary.adapters import (
 
 from .review import CreatedDecision, ReviewRequest, ReviewResume, parse_answer, parse_resume
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 __all__ = [
     "ReviewResume",
