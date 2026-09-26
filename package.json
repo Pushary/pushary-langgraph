@@ -1,7 +1,7 @@
 {
   "name": "@pushary/langgraph",
   "version": "0.4.0",
-  "description": "Human-in-the-loop for LangGraph and LangChain: a blocking ask_human tool, plus a durable interrupt()/Command resume that reaches your user on their phone.",
+  "description": "Phone approvals for LangGraph and LangChain agents. Your agent asks, your user taps Approve or Deny.",
   "author": "Pushary <business@pushary.com>",
   "homepage": "https://pushary.com/human-in-the-loop-langgraph",
   "repository": {
@@ -72,6 +72,7 @@
     "agent",
     "approval",
     "tool",
-    "llm"
+    "llm",
+    "tool-approval"
   ]
 }

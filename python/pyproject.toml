@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "pushary-langgraph"
 version = "0.4.0"
-description = "Human-in-the-loop for LangGraph and LangChain: a blocking ask_human, plus a durable interrupt()/Command resume that reaches your user on their phone."
+description = "Phone approvals for LangGraph and LangChain agents. Your agent asks, your user taps Approve or Deny."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -17,6 +17,8 @@ keywords = [
     "ai-agents",
     "approvals",
     "interrupt",
+    "approval",
+    "tool-approval",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

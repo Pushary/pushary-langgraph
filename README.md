@@ -1,15 +1,57 @@
 # @pushary/langgraph
 
-Your graph pauses; your customer answers on their phone. Resume the saved review with yes/no, a choice or text.
+Phone approvals for LangGraph and LangChain agents. Your agent asks, your user taps Approve or Deny.
 
 [Integration guide](https://pushary.com/human-in-the-loop-langgraph?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=guide) · [Connect your customer’s phone](https://pushary.com/sign-up?from=agent&plan=partner&utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=partner-start) · [Report a problem](https://github.com/Pushary/pushary-langgraph/issues)
 
 Listed in the [LangChain JavaScript tools directory](https://docs.langchain.com/oss/javascript/integrations/tools/index) and [provider directory](https://docs.langchain.com/oss/javascript/integrations/providers/all_providers).
 
-**Tutorial: [Pause an order workflow, get customer approval on a phone, then resume](examples/README.md).**
-Use the runnable refund example to gate a $40 refund for order DEMO-123.
+[![CI](https://github.com/Pushary/pushary-langgraph/actions/workflows/ci.yml/badge.svg)](https://github.com/Pushary/pushary-langgraph/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@pushary/langgraph)](https://www.npmjs.com/package/@pushary/langgraph)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+## What you need
+
+- A Pushary Partner plan, from $99 a month. [Start the trial](https://pushary.com/sign-up?from=agent&plan=partner&utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=partner-start).
+- An API key from [Partner onboarding](https://pushary.com/onboarding/partner), set as `PUSHARY_API_KEY`.
+- Your users install the free Pushary app ([iPhone](https://apps.apple.com/us/app/pushary/id6785677563), [Android](https://play.google.com/store/apps/details?id=com.pushary.app)). They never sign up or pay.
+
+## Quick start
+
+```bash
+npm i @pushary/langgraph @langchain/langgraph @langchain/core @langchain/openai zod
+```
+
+```ts
+import { ChatOpenAI } from '@langchain/openai'
+import { createReactAgent } from '@langchain/langgraph/prebuilt'
+import { connect, createAskHumanTool } from '@pushary/langgraph'
+
+const config = { apiKey: process.env.PUSHARY_API_KEY! }
+const { universalLink } = await connect(config, customer.id)
+// Once per user: show universalLink as a button or QR code.
+
+const agent = createReactAgent({
+  llm: new ChatOpenAI({ model: 'gpt-4o' }),
+  tools: [createAskHumanTool(config, { externalId: customer.id })],
+})
+await agent.invoke({ messages: [{ role: 'user', content: 'Refund $40 if the customer approves.' }] })
+```
+
+Deliver this link to that authenticated customer. Native enrollment requires the app
+and notification permission; after installation reopen the invitation. The customer
+needs no Pushary account, key or paid plan; the developer needs Partner access.
+`externalId` must come from trusted application ownership, never model-generated input.
+
+Use **confirm** for permission, **select** for a choice and **input** for missing
+details.
+Confirm notifications have lock-screen actions; choices and free text open the app.
+The older browser/PWA decision surface remains a compatibility path.
 
 ## Try it before signing up
+
+**Tutorial: [Pause an order workflow, get customer approval on a phone, then resume](examples/README.md).**
+Use the runnable refund example to gate a $40 refund for order DEMO-123.
 
 [Open the no-signup browser demo](https://pushary.com/try?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=demo).
 It demonstrates a human approval with an open phone page and temporary state;
@@ -38,32 +80,6 @@ unanswered: blocked (simulated refund)
 The integration code is MIT-licensed; real phone delivery uses the hosted Pushary service and requires Partner access.
 
 [Get help or contribute an example](CONTRIBUTING.md).
-
-[![CI](https://github.com/Pushary/pushary-langgraph/actions/workflows/ci.yml/badge.svg)](https://github.com/Pushary/pushary-langgraph/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/@pushary/langgraph)](https://www.npmjs.com/package/@pushary/langgraph)
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
-Human-in-the-loop for LangGraph and LangChain using the native Pushary app. Reuse
-**confirm** for permission, **select** for a choice and **input** for missing details.
-Confirm notifications have lock-screen actions; choices and free text open the app.
-The older browser/PWA decision surface remains a compatibility path.
-
-## Install and connect
-
-```bash
-npm i @pushary/langgraph @langchain/langgraph @langchain/core zod
-```
-
-```ts
-import { connect } from '@pushary/langgraph'
-
-const { universalLink } = await connect({ apiKey: process.env.PUSHARY_API_KEY }, authenticatedCustomer.id)
-```
-
-Deliver this link to that authenticated customer. Native enrollment requires the app
-and notification permission; after installation reopen the invitation. The customer
-needs no Pushary account, key or paid plan; the developer needs Partner access.
-`externalId` must come from trusted application ownership, never model-generated input.
 
 ## Optional ask tool vs enforced graph review
 

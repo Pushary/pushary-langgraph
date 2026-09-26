@@ -1,32 +1,26 @@
 # pushary-langgraph
 
+Phone approvals for LangGraph and LangChain agents. Your agent asks, your user taps Approve or Deny.
+
 [Connect your customer’s phone](https://pushary.com/sign-up?from=agent&plan=partner&utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-partner-start) · [Integration guide](https://pushary.com/docs/agents/adapters).
 
-Native Pushary customer reviews for LangGraph: **confirm** for permission, **select**
-for choices, **input** for missing details. Confirm supports lock-screen actions;
-select/input open the app. The legacy web/PWA surface remains compatible.
+## What you need
 
-## Install and enroll
+- A Pushary Partner plan, from $99 a month. [Start the trial](https://pushary.com/sign-up?from=agent&plan=partner&utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-partner-start).
+- An API key from [Partner onboarding](https://pushary.com/onboarding/partner), set as `PUSHARY_API_KEY`.
+- Your users install the free Pushary app ([iPhone](https://apps.apple.com/us/app/pushary/id6785677563), [Android](https://play.google.com/store/apps/details?id=com.pushary.app)). They never sign up or pay.
+
+## Quick start
 
 ```bash
 pip install pushary-langgraph
+export PUSHARY_API_KEY=pk_xxx.sk_xxx
 ```
 
 ```python
-from pushary_langgraph import connect
+from pushary_langgraph import connect, pushary_interrupt
 
-invitation = connect(authenticated_customer.id)
-```
-
-Give the invitation to that authenticated customer. They install the native app,
-reopen the link, and allow notifications. They need no Pushary account/key/paid plan;
-the developer needs Partner access. Bind `external_id` in trusted application code,
-not in model-generated tool arguments.
-
-## Review a graph action
-
-```python
-from pushary_langgraph import pushary_interrupt
+invitation = connect(authenticated_customer.id)  # once per user: show them this link
 
 
 def review_order(state):
@@ -43,11 +37,22 @@ def review_order(state):
     return {"approved": answer == "yes"}
 ```
 
+Give the invitation to that authenticated customer. They install the native app,
+reopen the link, and allow notifications. They need no Pushary account/key/paid plan;
+the developer needs Partner access. Bind `external_id` in trusted application code,
+not in model-generated tool arguments.
+
 Your graph must route to the protected write only when this confirm branch approved.
 `ask_human` is a blocking helper, not a rule forcing an agent to call it. A choice or
 text answer is data, not action authorization; use `type="select", options=["A", "B"]`
 or `type="input"` for the tool that needs those values. Do not use the shared SDK's
 `approved` convenience flag as permission for a select/input action.
+
+Use **confirm** for permission, **select** for choices and **input** for missing
+details. Confirm can be answered from the lock screen; select and input open the app.
+The legacy web/PWA surface remains compatible.
+
+## Review options
 
 The adapter accepts the existing subject/presentation parameters: `tool_target`,
 `actor`, `environment`, `parameters`, `presentation`, `placeholder`,
