@@ -112,3 +112,61 @@ For long waits, use the durable workflow path in the main README.
 Include Node, framework, and adapter versions; the command you ran; expected and
 actual output; and your OS. Redact API keys, enrollment links, user data, and session ids.
 Open a public issue or PR using [the contribution guide](../CONTRIBUTING.md).
+
+## Deep Agents: review its native tool interrupt after a restart
+
+[deepagents_review.py](deepagents_review.py) uses Deep Agents' own
+[`interrupt_on` review](https://docs.langchain.com/oss/python/deepagents/human-in-the-loop),
+a persistent LangGraph SQLite checkpointer and the existing Python Pushary
+callback validation. It reviews one `submit_order` action with `approve` or
+`reject`; other tools and subagents are outside this example's approval boundary.
+
+From a clone of this public repository, use Python 3.13:
+
+```bash
+python3.13 -m venv .venv
+.venv/bin/python -m pip install -r examples/deepagents-requirements.txt
+.venv/bin/python examples/deepagents_review.py
+```
+
+The pinned requirements reproduce the checked versions. This is an offline
+simulation: a deterministic model produces a real native interrupt, each worker
+runs in a fresh process, phone callbacks are signed locally, and network
+connections are rejected. Yes records one local order; no, expiry and cancellation
+record none. Replayed callbacks, a different recipient, mismatched correlation,
+changed arguments and malformed answers are checked. No phone delivery, model API
+or external order service is exercised.
+
+For real phone delivery, enroll your own Partner test customer and use a trusted
+HTTPS callback URL. After the native interrupt is checkpointed, reuse its saved
+action and your server's customer and operation revision:
+
+```python
+from pushary.adapters import AdapterKernel
+from pushary_langgraph.review import CreatedDecision
+from deepagents_review import SavedReview, make_review
+
+request = make_review(pending, trusted_customer, trusted_revision, trusted_callback_url)
+values = request.bound_input()
+question = values.pop("question")
+created = CreatedDecision.model_validate(
+    AdapterKernel("Deep Agents review").create_durable_decision(question, **values)
+)
+saved = SavedReview(
+    interrupt_id=pending.id, correlation_id=created.correlation_id, request=request,
+)
+```
+
+Set `PUSHARY_API_KEY` in the server environment. Persist both `saved` and `created`
+before acknowledging callbacks. Verify the raw callback body with
+`resolve_pushary_callback`, then pass its correlation and answer with
+`status="answered"` to `resume_review` using the same thread and checkpointer.
+Handle expiry and cancellation from authenticated decision state; unsigned
+callback bodies are not authority to resume. Keep a durable callback inbox so an
+early callback can wait for its receipt, and serialize resumes per thread. The
+business action also needs its own durable idempotency key.
+
+Only yes becomes native `approve`. Negative terminal outcomes become native
+`reject`, with a no-retry instruction. Editing arguments needs a new review;
+`respond` supplies a synthetic tool result and does not enforce rejection.
+Run a separate live phone test before claiming device delivery or live resumption.
