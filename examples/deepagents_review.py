@@ -13,8 +13,6 @@ import sys
 import tempfile
 from typing import Literal
 
-os.environ["LANGSMITH_TRACING"] = "false"
-
 from deepagents import create_deep_agent
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
@@ -156,7 +154,6 @@ def run_phase(mode: str, directory: Path, outcome: str) -> None:
                 assert agent.get_state(THREAD).interrupts
                 assert not (directory / "business.sqlite").exists()
             return
-        # ponytail: one worker per thread; serialize resumes before adding parallel workers.
         print(resume_review(agent, THREAD, saved, payload, CUSTOMER))
 
 
@@ -183,6 +180,7 @@ def check() -> None:
 
 
 if __name__ == "__main__":
+    os.environ["LANGSMITH_TRACING"] = "false"
     if len(sys.argv) == 4:
         socket.socket.connect = refuse_network
         socket.socket.connect_ex = refuse_network
