@@ -2,13 +2,21 @@
 
 Phone approvals for LangGraph and LangChain agents. Your agent asks, your user taps Approve or Deny.
 
-[Connect your customer’s phone](https://pushary.com/sign-up?from=agent&plan=partner&utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-partner-start) · [Integration guide](https://pushary.com/docs/agents/adapters).
+[Human in the loop for LangGraph](https://pushary.com/human-in-the-loop-langgraph?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-readme) · [Connect your customer’s phone](https://pushary.com/sign-up?from=agent&plan=partner&utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-partner-start) · [Report a problem](https://github.com/Pushary/pushary-langgraph/issues)
 
 ## What you need
 
 - A Pushary Partner plan, from $99 a month. [Start the trial](https://pushary.com/sign-up?from=agent&plan=partner&utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-partner-start).
 - An API key from [Partner onboarding](https://pushary.com/onboarding/partner?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-partner-start), set as `PUSHARY_API_KEY`.
 - Your users install the free Pushary app ([iPhone](https://apps.apple.com/us/app/pushary/id6785677563), [Android](https://play.google.com/store/apps/details?id=com.pushary.app)). They never sign up or pay.
+
+## What your customer gets
+
+1. They open your connect link once. It shows your product's name and logo and connects their phone.
+2. When the graph reaches your approval node, a push notification titled with your product name arrives, such as **Acme needs your approval**.
+3. They approve or decline, pick an option or type an answer. The graph routes to the protected step only on a confirm `"yes"`. A decline, an expired question or no answer at all never reaches it.
+
+Pushary hosts the phone delivery, the decision record and the [audit log](https://pushary.com/docs/agents/audit-log?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-readme). LangGraph keeps the checkpoint in your checkpointer. Your app keeps its own sign-in, the callback handling and the protected write.
 
 ## Quick start
 
@@ -49,7 +57,7 @@ or `type="input"` for the tool that needs those values. Do not use the shared SD
 `approved` convenience flag as permission for a select/input action.
 
 Use **confirm** for permission, **select** for choices and **input** for missing
-details. Confirm can be answered from the lock screen; select and input open the app.
+details. On iPhone, confirm can be answered from the lock screen; select and input open the app.
 The legacy web/PWA surface remains compatible.
 
 ## Review options
@@ -123,6 +131,14 @@ physical-device delivery.
 
 [Official LangGraph interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)
 describe persistence, replay and resuming by interrupt ID.
+
+## Links
+
+- [Human in the loop for LangGraph](https://pushary.com/human-in-the-loop-langgraph?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-readme) and [for LangChain](https://pushary.com/human-in-the-loop-langchain?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-readme): what your customer sees, with the full example.
+- [LangGraph guide](https://pushary.com/docs/agents/build/langgraph?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-readme) in the Pushary docs, with Python and TypeScript.
+- [Partner plan](https://pushary.com/partners?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-readme), from $99 a month. All plans are on the [pricing page](https://pushary.com/pricing?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-readme).
+- [Browser demo](https://pushary.com/try?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-readme) of one approval.
+- Other Python adapters: [CrewAI](https://github.com/Pushary/pushary-crewai), [Pydantic AI](https://github.com/Pushary/pushary-pydantic-ai), [OpenAI Agents SDK](https://github.com/Pushary/pushary-openai-agents).
 
 ## License
 

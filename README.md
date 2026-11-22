@@ -16,6 +16,14 @@ Listed in the [LangChain JavaScript tools directory](https://docs.langchain.com/
 - An API key from [Partner onboarding](https://pushary.com/onboarding/partner?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=partner-start), set as `PUSHARY_API_KEY`.
 - Your users install the free Pushary app ([iPhone](https://apps.apple.com/us/app/pushary/id6785677563), [Android](https://play.google.com/store/apps/details?id=com.pushary.app)). They never sign up or pay.
 
+## What your customer gets
+
+1. They open your connect link once. It shows your product's name and logo and connects their phone.
+2. When the graph reaches your approval node, a push notification titled with your product name arrives, such as **Acme needs your approval**.
+3. They approve or decline, pick an option or type an answer. The graph routes to the protected step only on a confirm `'yes'`. A decline, an expired question or no answer at all never reaches it.
+
+Pushary hosts the phone delivery, the decision record and the [audit log](https://pushary.com/docs/agents/audit-log?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme). LangGraph keeps the checkpoint in your checkpointer. Your app keeps its own sign-in, the callback handling and the protected write.
+
 ## Quick start
 
 ```bash
@@ -45,7 +53,7 @@ needs no Pushary account, key or paid plan; the developer needs Partner access.
 
 Use **confirm** for permission, **select** for a choice and **input** for missing
 details.
-Confirm notifications have lock-screen actions; choices and free text open the app.
+On iPhone, confirm notifications have lock-screen actions; choices and free text open the app.
 The older browser/PWA decision surface remains a compatibility path.
 
 ## Try it before signing up
@@ -212,6 +220,14 @@ The matching package is `pushary-langgraph`; see [python/README.md](python/READM
 in the published repository. Both languages use native interrupts and the existing
 Pushary decision service. Neither the optional ask tool nor an LLM instruction is an
 enforced action gate.
+
+## Links
+
+- [Human in the loop for LangGraph](https://pushary.com/human-in-the-loop-langgraph?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme) and [for LangChain](https://pushary.com/human-in-the-loop-langchain?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme): what your customer sees, with the full example.
+- [LangGraph guide](https://pushary.com/docs/agents/build/langgraph?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme) in the Pushary docs.
+- [Partner plan](https://pushary.com/partners?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme), from $99 a month. All plans are on the [pricing page](https://pushary.com/pricing?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme).
+- [Browser demo](https://pushary.com/try?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=readme) of one approval.
+- Other adapters: [Vercel AI SDK](https://github.com/Pushary/pushary-ai-sdk), [Mastra](https://github.com/Pushary/pushary-mastra), [OpenAI Agents SDK](https://github.com/Pushary/pushary-openai-agents).
 
 ## License
 
