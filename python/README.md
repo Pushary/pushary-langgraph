@@ -4,7 +4,11 @@ Phone approvals for LangGraph and LangChain agents. Your agent asks, your user t
 
 [Human in the loop for LangGraph](https://pushary.com/human-in-the-loop-langgraph?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-readme) · [Connect your customer’s phone](https://pushary.com/sign-up?from=agent&plan=partner&utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-partner-start) · [Report a problem](https://github.com/Pushary/pushary-langgraph/issues)
 
-## What you need
+## Try a refund locally
+
+From the `python/` directory of the public mirror, run `python -m pip install .` in a fresh virtual environment, then `python examples/refund.py`. A real LangGraph asks for a decision with the Pushary adapter. The example supplies three local replies. Yes records one simulated refund. No and an unanswered request both record zero. You can run it without credentials or a phone.
+
+## What you need for phone delivery
 
 - A Pushary Partner plan, from $99 a month. [Start the trial](https://pushary.com/sign-up?from=agent&plan=partner&utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-partner-start).
 - An API key from [Partner onboarding](https://pushary.com/onboarding/partner?utm_source=github&utm_medium=oss-adapter&utm_campaign=pushary-langgraph&utm_content=python-partner-start), set as `PUSHARY_API_KEY`.
